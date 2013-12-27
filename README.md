@@ -4,6 +4,18 @@ db-journaling
 A set of scripts to add automatic journaling to your database objects
 
 
+To install / update
+-------------
+
+Ruby is required to use the command-line tools.
+
+### Postrges
+
+./install/postrges.rb --help
+
+This script requires that you have psql installed (and on your PATH) from the location where you run it.
+
+
 Database Implementations
 -------------
 

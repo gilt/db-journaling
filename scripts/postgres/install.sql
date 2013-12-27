@@ -1,10 +1,4 @@
-drop schema if exists journal_util cascade;
-create schema journal_util;
-
-drop schema if exists journal cascade;
-create schema journal;
-
-create or replace function journal_util.refresh_journal_trigger(
+create or replace function journal.refresh_journal_trigger(
   p_source_schema_name in varchar, p_source_table_name in varchar,
   p_target_schema_name in varchar, p_target_table_name in varchar
 ) returns varchar language plpgsql as $$
@@ -52,7 +46,7 @@ begin
 end;
 $$;
 
-create or replace function journal_util.get_data_type_string(
+create or replace function journal.get_data_type_string(
   p_column information_schema.columns
 ) returns varchar language plpgsql as $$
 begin
@@ -64,7 +58,7 @@ begin
 end;
 $$;
 
-create or replace function journal_util.refresh_journaling(
+create or replace function journal.refresh_journaling(
   p_source_schema_name in varchar, p_source_table_name in varchar,
   p_target_schema_name in varchar, p_target_table_name in varchar
 ) returns varchar language plpgsql as $$
@@ -75,11 +69,11 @@ declare
 begin
   v_journal_name = p_target_schema_name || '.' || p_target_table_name;
   if exists(select 1 from information_schema.tables where table_schema = p_target_schema_name and table_name = p_target_table_name) then
-    for row in (select column_name, journal_util.get_data_type_string(information_schema.columns.*) as data_type from information_schema.columns where table_schema = p_source_schema_name and table_name = p_source_table_name order by ordinal_position) loop
+    for row in (select column_name, journal.get_data_type_string(information_schema.columns.*) as data_type from information_schema.columns where table_schema = p_source_schema_name and table_name = p_source_table_name order by ordinal_position) loop
 
       -- NB: Specifically choosing to not drop deleted columns from the journal table, to preserve the data.
       -- There are no constraints on the journaling table columns anyway, so leaving it populated with null will be fine.
-      select journal_util.get_data_type_string(information_schema.columns.*) into v_data_type from information_schema.columns where table_schema = p_target_schema_name and table_name = p_target_table_name and column_name = row.column_name;
+      select journal.get_data_type_string(information_schema.columns.*) into v_data_type from information_schema.columns where table_schema = p_target_schema_name and table_name = p_target_table_name and column_name = row.column_name;
       if not found then
         execute 'alter table ' || v_journal_name || ' add ' || row.column_name || ' ' || row.data_type;
       elsif (row.data_type != v_data_type) then
@@ -95,7 +89,7 @@ begin
 
   end if;
 
-  perform journal_util.refresh_journal_trigger(p_source_schema_name, p_source_table_name, p_target_schema_name, p_target_table_name);
+  perform journal.refresh_journal_trigger(p_source_schema_name, p_source_table_name, p_target_schema_name, p_target_table_name);
 
   return v_journal_name;
 
