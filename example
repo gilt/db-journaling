@@ -1,0 +1,32 @@
+#!/bin/sh
+
+createdb example
+
+# Installation
+psql -f scripts/postgres/install.sql example
+
+psql -c "create table users (id bigserial, email text not null)" example
+
+# Enable journaling on the table users
+psql -c "select journal_util.refresh_journaling('public', 'users', 'journal', 'users')" example
+
+# Add some data
+psql -c "insert into users (email) values ('rmartin@gilttest.com')" example
+psql -c "insert into users (email) values ('mbryzek@gilttest.com')" example
+
+psql -c "update users set email = 'rmartin2@gilttest.com' where email = 'rmartin@gilttest.com'" example
+
+# View the journal information
+psql -c "select * from journal.users order by id" example
+
+# Add a column
+psql -c "alter table users add name text" example
+
+# Refresh journaling to pick up the new column
+psql -c "select journal_util.refresh_journaling('public', 'users', 'journal', 'users')" example
+
+psql -c "update users set name = 'Ryan Martin' where email = 'rmartin2@gilttest.com'" example
+psql -c "update users set name = 'Michael Bryzek' where email = 'mbryzek@gilttest.com'" example
+
+# View the journal information
+psql -c "select * from journal.users order by id" example
