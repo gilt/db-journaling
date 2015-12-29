@@ -1,7 +1,19 @@
 db-journaling
 =============
 
-A set of scripts to add automatic journaling to your database objects
+A set of scripts to add automatic journaling to your database
+objects. Once installed for a given table, all insert or update will
+be copied into an append only table in a schema that you specify.
+
+
+Installation
+-------------
+psql -f scripts/postgres/install.sql databasename
+
+
+Example
+-------------
+See example file for an end to end example.
 
 
 To install / update
