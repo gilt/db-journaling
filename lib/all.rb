@@ -1,4 +1,6 @@
 load File.join(File.dirname(__FILE__), 'trollop.rb')
 load File.join(File.dirname(__FILE__), 'common.rb')
 load File.join(File.dirname(__FILE__), 'git.rb')
+load File.join(File.dirname(__FILE__), 'preconditions.rb')
 load File.join(File.dirname(__FILE__), 'psql.rb')
+load File.join(File.dirname(__FILE__), 'version.rb')

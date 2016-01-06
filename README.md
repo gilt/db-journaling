@@ -9,6 +9,13 @@ To install / update
 
 Ruby is required to use the command-line tools.
 
+First download the version you want from the [versions](../../blob/master/versions) directory. If you'd like to script it:
+
+```
+wget "https://github.com/gilt/db-journaling/versions/db-journaling-current.zip"
+unzip db-journaling-current.zip -d db-journaling
+```
+
 ### Postgres
 
 ./install/postgres-journaling --help
@@ -41,4 +48,14 @@ Calling the refresh_journaling function will create this table and replicate all
 Indexes:
     "foo_pkey" PRIMARY KEY, btree (journal_id)
     "foo_id_idx" btree (id)
+```
+
+
+Contributors
+-------------
+
+To release a new version of the tool and installation scripts, use
+
+```
+./release.rb [major|minor|micro]
 ```

@@ -5,16 +5,20 @@ require 'fileutils'
 class Git
   extend Common
 
+  def Git.assert_valid_tag(tag)
+    Preconditions.check_state(Version.is_valid?(tag), "Invalid tag[%s]. Format must be x.x.x (e.g. 1.1.2)" % tag)
+  end
+
   def Git.clone(url, destination)
     run("git clone #{url} #{destination}", true)
   end
 
-  def Git.get_remote_url
-    run("git config --get remote.origin.url")
-  end
-
   def Git.get_repo_name
     run("basename `git rev-parse --show-toplevel`")
+  end
+
+  def Git.has_remote?
+    system("git config --get remote.origin.url")
   end
 
   def Git.has_tag?(tag)
@@ -26,28 +30,7 @@ class Git
     end
   end
 
-  def Git.with_tmp_version(version = nil)
-    current_dir = Dir.pwd
-    temp_dir = "./tmp/#{random_string}"
-    FileUtils.rm_rf(temp_dir)
-    FileUtils.mkdir_p(temp_dir)
-    Dir.chdir(temp_dir) do
-      begin
-        repo_name = get_repo_name
-        clone(get_remote_url, repo_name)
-        Dir.chdir("./#{repo_name}")
-        unless version.nil?
-          if has_tag?(version)
-            run("git checkout origin #{version}")
-          else
-            error "Version not found [#{version}]."
-          end
-        end
-        yield
-      rescue Exception => e
-        error e.message
-      end
-    end
-    FileUtils.rm_rf(temp_dir)
+  def Git.latest_tag
+    `git tag -l`.strip.split.select { |tag| Version.is_valid?(tag) }.map { |tag| Version.new(tag) }.sort.last
   end
 end

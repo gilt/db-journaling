@@ -20,7 +20,12 @@ module Common
       `#{command} &> /dev/null`
       nil
     else
-      `#{command}`.to_s.chomp
+      result = `#{command}`.to_s.chomp
+      status = $?
+      if status.to_i > 0
+        raise "Non zero exit code[%s] running command[%s]" % [status, command]
+      end
+      result
     end
   end
 

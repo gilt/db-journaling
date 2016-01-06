@@ -14,7 +14,6 @@ Arguments:
   -h|--host=          The host name of the machine against which to run the script. Defaults to localhost.
   -p|--port=          The port of the running Postgres instance. Optional.
   -s|--schema_name=   The schema name under which to install the util functions. Defaults to "journal".
-  -v|--version=       The tagged version number of the util to install. Defaults to the current version.
   -U|--username=      The postgres user to run the script as. Optional.
 TEXT
 
@@ -29,7 +28,6 @@ EOS
   opt :host, 'The host name of the machine against which to run the script. Defaults to localhost.', :type => String, :default => 'localhost'
   opt :port, 'The port of the running Postgres instance.', :type => Integer
   opt :schema_name, 'The schema name under which to install the util functions. Defaults to "journal".', :type => String, :default => 'journal'
-  opt :version, 'The tagged version number of the util to install. Defaults to the current version.', :type => String
   opt :username, 'The postgres user to run the script as.', :type => String, :short => 'U'
 end
 
@@ -39,16 +37,15 @@ dbname = ARGV[0]
 if dbname.nil?
   tell 'Please specify a target database.'
 else
-  Git.with_tmp_version(version) do
-    tell "Installing version [#{version || "current"}] on schema [#{schema_name}]"
-    psql = Psql.new(dbname,
-                   :username => opts[:username],
-                   :host => opts[:host],
-                   :port => opts[:port])
-    query = psql.in_schema(schema_name) do
-      File.read("scripts/postgres/install.sql").gsub("journal.", "#{schema_name}.")
-    end
-    success = psql.execute(query)
-    tell "Journaling installed successfully into the #{schema_name} schema." if success
+  version = Version.read
+  tell "Installing version [%s] on schema [%s]" % [version.to_version_string, schema_name]
+  psql = Psql.new(dbname,
+                 :username => opts[:username],
+                 :host => opts[:host],
+                 :port => opts[:port])
+  query = psql.in_schema(schema_name) do
+    File.read("scripts/postgres/install.sql").gsub("journal.", "#{schema_name}.")
   end
+  success = psql.execute(query)
+  tell "Journaling installed successfully into the #{schema_name} schema." if success
 end
