@@ -1,3 +1,17 @@
+create or replace function journal.get_deleted_by_user_id() returns varchar language plpgsql as $$
+declare
+  v_result varchar;
+begin
+  -- will throw exception if not set:
+  -- 'unrecognized configuration parameter "journal.deleted_by_user_id"
+  select current_setting('journal.deleted_by_user_id') into v_result;
+  return v_result;
+exception when others then
+  -- throw a better error message
+  RAISE EXCEPTION 'journal.deleted_by_user_id is not set, Please use util.delete_by_id';
+end;
+$$;
+
 create or replace function journal.refresh_journal_trigger(
   p_source_schema_name in varchar,
   p_source_table_name in varchar,
@@ -38,7 +52,12 @@ begin
 
   for row in (select column_name from information_schema.columns where table_schema = p_source_schema_name and table_name = p_source_table_name order by ordinal_position) loop
     v_sql := v_sql || ', ' || row.column_name;
-    v_target_sql := v_target_sql || ', old.' || row.column_name;
+
+    if row.column_name = 'updated_by_user_id' then
+      v_target_sql := v_target_sql || ', journal.get_deleted_by_user_id()';
+    else
+      v_target_sql := v_target_sql || ', old.' || row.column_name;
+    end if;
   end loop;
 
   v_sql := v_sql || ') values (' || v_target_sql || '); ';
@@ -205,11 +224,53 @@ begin
     execute 'alter table ' || v_journal_name || ' add journal_id bigserial primary key ';
     execute 'comment on table ' || v_journal_name || ' is ''Created by plsql function refresh_journaling to shadow all inserts and updates on the table ' || p_source_schema_name || '.' || p_source_table_name || '''';
     perform journal.add_primary_key_data(p_source_schema_name, p_source_table_name, p_target_schema_name, p_target_table_name);
+    perform journal.create_prevent_update_trigger(p_target_schema_name, p_target_table_name);
+    perform journal.create_prevent_delete_trigger(p_target_schema_name, p_target_table_name);
   end if;
 
   perform journal.refresh_journal_trigger(p_source_schema_name, p_source_table_name, p_target_schema_name, p_target_table_name);
-  
+
   return v_journal_name;
 
+end;
+$$;
+
+create or replace function create_prevent_delete_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
+  language plpgsql
+  as $$
+declare
+  v_name varchar;
+begin
+  v_name = p_table_name || '_prevent_delete_trigger';
+  execute 'create trigger ' || v_name || ' before delete on ' || p_schema_name || '.' || p_table_name || ' for each row execute procedure journal.prevent_delete()';
+  return v_name;
+end;
+$$;
+
+create or replace function prevent_delete() returns trigger
+  language plpgsql
+  as $$
+begin
+  raise exception 'Physical deletes are not allowed on this table';
+end;
+$$;
+
+create or replace function create_prevent_update_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
+  language plpgsql
+  as $$
+declare
+  v_name varchar;
+begin
+  v_name = p_table_name || '_prevent_updaate_trigger';
+  execute 'create trigger ' || v_name || ' before update on ' || p_schema_name || '.' || p_table_name || ' for each row execute procedure journal.prevent_update()';
+  return v_name;
+end;
+$$;
+
+create or replace function prevent_update() returns trigger
+  language plpgsql
+  as $$
+begin
+  raise exception 'Physical updates are not allowed on this table';
 end;
 $$;
