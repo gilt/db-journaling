@@ -235,7 +235,7 @@ begin
 end;
 $$;
 
-create or replace function create_prevent_delete_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
+create or replace function journal.create_prevent_delete_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
   language plpgsql
   as $$
 declare
@@ -247,7 +247,7 @@ begin
 end;
 $$;
 
-create or replace function prevent_delete() returns trigger
+create or replace function journal.prevent_delete() returns trigger
   language plpgsql
   as $$
 begin
@@ -255,19 +255,19 @@ begin
 end;
 $$;
 
-create or replace function create_prevent_update_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
+create or replace function journal.create_prevent_update_trigger(p_schema_name character varying, p_table_name character varying) returns character varying
   language plpgsql
   as $$
 declare
   v_name varchar;
 begin
-  v_name = p_table_name || '_prevent_updaate_trigger';
+  v_name = p_table_name || '_prevent_update_trigger';
   execute 'create trigger ' || v_name || ' before update on ' || p_schema_name || '.' || p_table_name || ' for each row execute procedure journal.prevent_update()';
   return v_name;
 end;
 $$;
 
-create or replace function prevent_update() returns trigger
+create or replace function journal.prevent_update() returns trigger
   language plpgsql
   as $$
 begin
